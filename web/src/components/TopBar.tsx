@@ -94,7 +94,7 @@ export default function TopBar() {
               textDecoration: 'none',
             }}
           >
-            Login
+            {t(locale, 'login')}
           </Link>
         </div>
       </div>

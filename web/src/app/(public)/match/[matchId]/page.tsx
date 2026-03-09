@@ -8,7 +8,9 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
   const { matchId } = await params;
   const locale = getLocaleFromCookie((await cookies()).toString());
 
-  const detail = await apiGet<any>(`/v1/matches/${encodeURIComponent(matchId)}`);
+  const detail = await apiGet<any>(`/v1/matches/${encodeURIComponent(matchId)}`)
+    .catch((e) => ({ __error: String(e?.message ?? e) }));
+  const err = (detail as any)?.__error as string | undefined;
 
   const tabs = [
     { key: 'overview', label: 'Overview' },
@@ -69,8 +71,13 @@ export default async function MatchPage({ params }: { params: Promise<{ matchId:
       </div>
 
       <div style={{ marginTop: 12, background: '#0B0F14', border: '1px solid #1F2937', borderRadius: 14, padding: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 14, color: '#E5E7EB' }}>Detail (raw JSON)</h2>
-        <pre style={{ marginTop: 10, whiteSpace: 'pre-wrap', color: '#D1D5DB', fontSize: 12 }}>{JSON.stringify(detail, null, 2)}</pre>
+        <h2 style={{ margin: 0, fontSize: 14, color: '#E5E7EB' }}>Detail</h2>
+
+        {err ? (
+          <div style={{ marginTop: 10, color: '#FCA5A5', fontSize: 12, whiteSpace: 'pre-wrap' }}>{err}</div>
+        ) : (
+          <pre style={{ marginTop: 10, whiteSpace: 'pre-wrap', color: '#D1D5DB', fontSize: 12 }}>{JSON.stringify(detail, null, 2)}</pre>
+        )}
       </div>
     </main>
   );

@@ -40,8 +40,10 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
   const date = sp.date ?? yyyyMmDd();
   const status = (sp.status as any) ?? 'upcoming';
 
-  const res = await apiGet<any>(`/v1/matches?date=${encodeURIComponent(date)}&status=${encodeURIComponent(status)}`);
+  const res = await apiGet<any>(`/v1/matches?date=${encodeURIComponent(date)}&status=${encodeURIComponent(status)}`)
+    .catch((e) => ({ __error: String(e?.message ?? e) }));
   const matches = extractMatches(res);
+  const err = (res as any)?.__error as string | undefined;
 
   const statuses: { key: string; label: string }[] = [
     { key: 'inprogress', label: t(locale, 'live') },
@@ -77,28 +79,44 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-        {matches.map((m) => {
-          const id = getId(m);
-          return (
-            <Link
-              key={id}
-              href={`/match/${encodeURIComponent(id)}`}
-              style={{
-                textDecoration: 'none',
-                background: '#111827',
-                border: '1px solid #1F2937',
-                borderRadius: 14,
-                padding: 12,
-                color: '#fff',
-              }}
-            >
-              <div style={{ fontWeight: 800 }}>{title(m)}</div>
-              <div style={{ marginTop: 8, fontSize: 12, color: '#9CA3AF' }}>id: {id}</div>
-            </Link>
-          );
-        })}
-      </div>
+      {err ? (
+        <div
+          style={{
+            background: '#111827',
+            border: '1px solid #7f1d1d',
+            borderRadius: 14,
+            padding: 12,
+            color: '#FCA5A5',
+            fontSize: 12,
+            whiteSpace: 'pre-wrap',
+          }}
+        >
+          {err}
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+          {matches.map((m) => {
+            const id = getId(m);
+            return (
+              <Link
+                key={id}
+                href={`/match/${encodeURIComponent(id)}`}
+                style={{
+                  textDecoration: 'none',
+                  background: '#111827',
+                  border: '1px solid #1F2937',
+                  borderRadius: 14,
+                  padding: 12,
+                  color: '#fff',
+                }}
+              >
+                <div style={{ fontWeight: 800 }}>{title(m)}</div>
+                <div style={{ marginTop: 8, fontSize: 12, color: '#9CA3AF' }}>id: {id}</div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </main>
   );
 }
