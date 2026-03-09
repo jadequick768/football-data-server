@@ -49,15 +49,15 @@ export default async function TodayHub() {
   const date = yyyyMmDd();
 
   const [live, upcoming, finished] = await Promise.all([
-    load(date, 'inprogress'),
-    load(date, 'upcoming'),
-    load(date, 'finished'),
+    load(date, 'inprogress').catch((e) => ({ __error: String(e?.message ?? e) })),
+    load(date, 'upcoming').catch((e) => ({ __error: String(e?.message ?? e) })),
+    load(date, 'finished').catch((e) => ({ __error: String(e?.message ?? e) })),
   ]);
 
-  const sections: { key: MatchStatus; label: string; data: any[] }[] = [
-    { key: 'inprogress', label: t(locale, 'live'), data: extractMatches(live) },
-    { key: 'upcoming', label: t(locale, 'upcoming'), data: extractMatches(upcoming) },
-    { key: 'finished', label: t(locale, 'finished'), data: extractMatches(finished) },
+  const sections: { key: MatchStatus; label: string; data: any[]; err?: string }[] = [
+    { key: 'inprogress', label: t(locale, 'live'), data: extractMatches(live), err: (live as any)?.__error },
+    { key: 'upcoming', label: t(locale, 'upcoming'), data: extractMatches(upcoming), err: (upcoming as any)?.__error },
+    { key: 'finished', label: t(locale, 'finished'), data: extractMatches(finished), err: (finished as any)?.__error },
   ];
 
   return (
@@ -76,33 +76,47 @@ export default async function TodayHub() {
             <span style={{ fontSize: 12, color: '#9CA3AF' }}>{s.data.length}</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-            {s.data.slice(0, 20).map((m) => {
-              const id = getId(m);
-              return (
-                <Link
-                  key={id}
-                  href={`/match/${encodeURIComponent(id)}`}
-                  style={{
-                    textDecoration: 'none',
-                    background: '#111827',
-                    border: '1px solid #1F2937',
-                    borderRadius: 14,
-                    padding: 12,
-                    color: '#fff',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                    <div style={{ fontWeight: 800 }}>{title(m)}</div>
-                    <div style={{ fontWeight: 900, color: s.key === 'inprogress' ? '#22C55E' : '#E5E7EB' }}>{score(m)}</div>
-                  </div>
-                  <div style={{ marginTop: 8, fontSize: 12, color: '#9CA3AF' }}>
-                    id: {id}
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          {s.err ? (
+            <div
+              style={{
+                background: '#111827',
+                border: '1px solid #7f1d1d',
+                borderRadius: 14,
+                padding: 12,
+                color: '#FCA5A5',
+                fontSize: 12,
+                whiteSpace: 'pre-wrap',
+              }}
+            >
+              {s.err}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+              {s.data.slice(0, 20).map((m) => {
+                const id = getId(m);
+                return (
+                  <Link
+                    key={id}
+                    href={`/match/${encodeURIComponent(id)}`}
+                    style={{
+                      textDecoration: 'none',
+                      background: '#111827',
+                      border: '1px solid #1F2937',
+                      borderRadius: 14,
+                      padding: 12,
+                      color: '#fff',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ fontWeight: 800 }}>{title(m)}</div>
+                      <div style={{ fontWeight: 900, color: s.key === 'inprogress' ? '#22C55E' : '#E5E7EB' }}>{score(m)}</div>
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: 12, color: '#9CA3AF' }}>id: {id}</div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </section>
       ))}
     </main>
