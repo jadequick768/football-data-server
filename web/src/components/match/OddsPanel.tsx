@@ -3,7 +3,6 @@
 import React from 'react';
 
 import Badge from '@/components/ui/Badge';
-import { API_BASE } from '@/lib/api';
 
 function pickOddsRows(raw: any): any[] {
   const d = raw?.data ?? raw;
@@ -41,11 +40,11 @@ export default function OddsPanel({ matchId }: { matchId: string }) {
     setError(null);
     try {
       const [odds, votes] = await Promise.all([
-        fetch(`${API_BASE}/v1/matches/${encodeURIComponent(matchId)}/deep/odds`).then(async (r) => {
+        fetch(`/api/match/${encodeURIComponent(matchId)}/odds`).then(async (r) => {
           if (!r.ok) throw new Error(await r.text());
           return r.json();
         }),
-        fetch(`${API_BASE}/v1/matches/${encodeURIComponent(matchId)}/deep/votes`).then(async (r) => {
+        fetch(`/api/match/${encodeURIComponent(matchId)}/votes`).then(async (r) => {
           if (!r.ok) return null;
           return r.json();
         }),
