@@ -11,26 +11,46 @@ function yyyyMmDd(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
-function extractMatches(res: any): any[] {
-  if (Array.isArray(res)) return res;
-  if (Array.isArray(res?.data)) return res.data;
-  if (Array.isArray(res?.matches)) return res.matches;
-  return [];
-}
+type NormalMatch = {
+  id: string;
+  title: string;
+  leagueName?: string;
+  scoreText?: string;
+};
 
-function getId(m: any): string {
-  return String(m?.id ?? m?.match_id ?? m?.event_id ?? '');
-}
+function extractMatches(res: any): NormalMatch[] {
+  const data = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : null;
+  if (!data) return [];
 
-function teamName(t: any): string {
-  return t?.name ?? t?.short_name ?? t?.title ?? String(t ?? '');
-}
+  if (data.length && data[0]?.matches && Array.isArray(data[0].matches)) {
+    const out: NormalMatch[] = [];
+    for (const block of data) {
+      const leagueName = block?.league?.name;
+      for (const m of block.matches ?? []) {
+        const id = String(m?.id ?? '');
+        if (!id) continue;
+        out.push({
+          id,
+          title: String(m?.title ?? `Match ${id}`),
+          leagueName,
+          scoreText: String(m?.score?.display ?? m?.score?.normal_time ?? ''),
+        });
+      }
+    }
+    return out;
+  }
 
-function title(m: any): string {
-  const home = teamName(m?.home ?? m?.home_team);
-  const away = teamName(m?.away ?? m?.away_team);
-  if (home && away && home !== '[object Object]' && away !== '[object Object]') return `${home} vs ${away}`;
-  return m?.name ?? m?.title ?? `Match ${getId(m)}`;
+  return data
+    .map((m: any) => {
+      const id = String(m?.id ?? m?.match_id ?? m?.event_id ?? '');
+      return {
+        id,
+        title: String(m?.title ?? m?.name ?? `Match ${id}`),
+        leagueName: m?.league?.name,
+        scoreText: String(m?.score?.display ?? ''),
+      } as NormalMatch;
+    })
+    .filter((m: NormalMatch) => Boolean(m.id));
 }
 
 export default async function SchedulePage({ searchParams }: { searchParams: Promise<{ date?: string; status?: string }> }) {
@@ -96,11 +116,10 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
           {matches.map((m) => {
-            const id = getId(m);
             return (
               <Link
-                key={id}
-                href={`/match/${encodeURIComponent(id)}`}
+                key={m.id}
+                href={`/match/${encodeURIComponent(m.id)}`}
                 style={{
                   textDecoration: 'none',
                   background: '#111827',
@@ -110,8 +129,13 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
                   color: '#fff',
                 }}
               >
-                <div style={{ fontWeight: 800 }}>{title(m)}</div>
-                <div style={{ marginTop: 8, fontSize: 12, color: '#9CA3AF' }}>id: {id}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ fontWeight: 800 }}>{m.title}</div>
+                  <div style={{ fontWeight: 900, color: '#E5E7EB' }}>{m.scoreText ?? ''}</div>
+                </div>
+                <div style={{ marginTop: 8, fontSize: 12, color: '#9CA3AF' }}>
+                  {m.leagueName ? `${m.leagueName} · ` : ''}id: {m.id}
+                </div>
               </Link>
             );
           })}

@@ -11,33 +11,51 @@ function yyyyMmDd(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
-function extractMatches(res: any): any[] {
-  if (Array.isArray(res)) return res;
-  if (Array.isArray(res?.data)) return res.data;
-  if (Array.isArray(res?.matches)) return res.matches;
-  return [];
-}
+type NormalMatch = {
+  id: string;
+  title: string;
+  status?: string;
+  leagueName?: string;
+  scoreText?: string;
+};
 
-function getId(m: any): string {
-  return String(m?.id ?? m?.match_id ?? m?.event_id ?? '');
-}
+function extractMatches(res: any): NormalMatch[] {
+  const data = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : null;
+  if (!data) return [];
 
-function teamName(t: any): string {
-  return t?.name ?? t?.short_name ?? t?.title ?? String(t ?? '');
-}
+  // SportSRC often returns: data: [{ league: {...}, matches: [...] }, ...]
+  if (data.length && data[0]?.matches && Array.isArray(data[0].matches)) {
+    const out: NormalMatch[] = [];
+    for (const block of data) {
+      const leagueName = block?.league?.name;
+      for (const m of block.matches ?? []) {
+        const id = String(m?.id ?? '');
+        if (!id) continue;
+        out.push({
+          id,
+          title: String(m?.title ?? `Match ${id}`),
+          status: m?.status,
+          leagueName,
+          scoreText: String(m?.score?.display ?? m?.score?.normal_time ?? ''),
+        });
+      }
+    }
+    return out;
+  }
 
-function title(m: any): string {
-  const home = teamName(m?.home ?? m?.home_team);
-  const away = teamName(m?.away ?? m?.away_team);
-  if (home && away && home !== '[object Object]' && away !== '[object Object]') return `${home} vs ${away}`;
-  return m?.name ?? m?.title ?? `Match ${getId(m)}`;
-}
-
-function score(m: any): string {
-  const sh = m?.score_home ?? m?.home_score ?? m?.scores?.home;
-  const sa = m?.score_away ?? m?.away_score ?? m?.scores?.away;
-  if (sh !== undefined && sa !== undefined) return `${sh}-${sa}`;
-  return '';
+  // fallback: already a flat list
+  return data
+    .map((m: any) => {
+      const id = String(m?.id ?? m?.match_id ?? m?.event_id ?? '');
+      return {
+        id,
+        title: String(m?.title ?? m?.name ?? `Match ${id}`),
+        status: m?.status,
+        leagueName: m?.league?.name,
+        scoreText: String(m?.score?.display ?? ''),
+      } as NormalMatch;
+    })
+    .filter((m: NormalMatch) => Boolean(m.id));
 }
 
 async function load(date: string, status: MatchStatus) {
@@ -90,31 +108,32 @@ export default async function TodayHub() {
             >
               {s.err}
             </div>
+          ) : s.data.length === 0 ? (
+            <div style={{ color: '#9CA3AF', fontSize: 12, padding: 8 }}>No matches</div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-              {s.data.slice(0, 20).map((m) => {
-                const id = getId(m);
-                return (
-                  <Link
-                    key={id}
-                    href={`/match/${encodeURIComponent(id)}`}
-                    style={{
-                      textDecoration: 'none',
-                      background: '#111827',
-                      border: '1px solid #1F2937',
-                      borderRadius: 14,
-                      padding: 12,
-                      color: '#fff',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                      <div style={{ fontWeight: 800 }}>{title(m)}</div>
-                      <div style={{ fontWeight: 900, color: s.key === 'inprogress' ? '#22C55E' : '#E5E7EB' }}>{score(m)}</div>
-                    </div>
-                    <div style={{ marginTop: 8, fontSize: 12, color: '#9CA3AF' }}>id: {id}</div>
-                  </Link>
-                );
-              })}
+              {s.data.slice(0, 30).map((m) => (
+                <Link
+                  key={m.id}
+                  href={`/match/${encodeURIComponent(m.id)}`}
+                  style={{
+                    textDecoration: 'none',
+                    background: '#111827',
+                    border: '1px solid #1F2937',
+                    borderRadius: 14,
+                    padding: 12,
+                    color: '#fff',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                    <div style={{ fontWeight: 800 }}>{m.title}</div>
+                    <div style={{ fontWeight: 900, color: s.key === 'inprogress' ? '#22C55E' : '#E5E7EB' }}>{m.scoreText ?? ''}</div>
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: 12, color: '#9CA3AF' }}>
+                    {m.leagueName ? `${m.leagueName} · ` : ''}id: {m.id}
+                  </div>
+                </Link>
+              ))}
             </div>
           )}
         </section>
