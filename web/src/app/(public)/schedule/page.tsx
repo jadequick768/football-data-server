@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 
+import LeagueSection from '@/components/matches/LeagueSection';
 import { apiGet } from '@/lib/api';
 import { getLocaleFromCookie, t } from '@/lib/i18n';
+import { toUiLeagueBlocks, type MatchesResponse } from '@/lib/sportsrc';
 
 function yyyyMmDd(d = new Date()): string {
   const y = d.getFullYear();
@@ -11,46 +13,8 @@ function yyyyMmDd(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
-type NormalMatch = {
-  id: string;
-  title: string;
-  leagueName?: string;
-  scoreText?: string;
-};
-
-function extractMatches(res: any): NormalMatch[] {
-  const data = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : null;
-  if (!data) return [];
-
-  if (data.length && data[0]?.matches && Array.isArray(data[0].matches)) {
-    const out: NormalMatch[] = [];
-    for (const block of data) {
-      const leagueName = block?.league?.name;
-      for (const m of block.matches ?? []) {
-        const id = String(m?.id ?? '');
-        if (!id) continue;
-        out.push({
-          id,
-          title: String(m?.title ?? `Match ${id}`),
-          leagueName,
-          scoreText: String(m?.score?.display ?? m?.score?.normal_time ?? ''),
-        });
-      }
-    }
-    return out;
-  }
-
-  return data
-    .map((m: any) => {
-      const id = String(m?.id ?? m?.match_id ?? m?.event_id ?? '');
-      return {
-        id,
-        title: String(m?.title ?? m?.name ?? `Match ${id}`),
-        leagueName: m?.league?.name,
-        scoreText: String(m?.score?.display ?? ''),
-      } as NormalMatch;
-    })
-    .filter((m: NormalMatch) => Boolean(m.id));
+function extractBlocks(res: any) {
+  return toUiLeagueBlocks(res as MatchesResponse);
 }
 
 export default async function SchedulePage({ searchParams }: { searchParams: Promise<{ date?: string; status?: string }> }) {
@@ -62,7 +26,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
 
   const res = await apiGet<any>(`/v1/matches?date=${encodeURIComponent(date)}&status=${encodeURIComponent(status)}`)
     .catch((e) => ({ __error: String(e?.message ?? e) }));
-  const matches = extractMatches(res);
+  const blocks = extractBlocks(res);
   const err = (res as any)?.__error as string | undefined;
 
   const statuses: { key: string; label: string }[] = [
@@ -113,32 +77,13 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
         >
           {err}
         </div>
+      ) : blocks.length === 0 ? (
+        <div style={{ color: '#9CA3AF', fontSize: 12, padding: 8 }}>No matches</div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-          {matches.map((m) => {
-            return (
-              <Link
-                key={m.id}
-                href={`/match/${encodeURIComponent(m.id)}`}
-                style={{
-                  textDecoration: 'none',
-                  background: '#111827',
-                  border: '1px solid #1F2937',
-                  borderRadius: 14,
-                  padding: 12,
-                  color: '#fff',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                  <div style={{ fontWeight: 800 }}>{m.title}</div>
-                  <div style={{ fontWeight: 900, color: '#E5E7EB' }}>{m.scoreText ?? ''}</div>
-                </div>
-                <div style={{ marginTop: 8, fontSize: 12, color: '#9CA3AF' }}>
-                  {m.leagueName ? `${m.leagueName} · ` : ''}id: {m.id}
-                </div>
-              </Link>
-            );
-          })}
+        <div style={{ display: 'grid', gap: 12 }}>
+          {blocks.map((b) => (
+            <LeagueSection key={b.leagueName} block={b} />
+          ))}
         </div>
       )}
     </main>
