@@ -3,15 +3,21 @@ export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? 'https://api.ti
 export type MatchStatus = 'inprogress' | 'upcoming' | 'finished';
 
 export async function apiGet<T>(path: string, opts?: { token?: string; credentials?: RequestCredentials }) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: 'GET',
-    headers: {
-      'content-type': 'application/json',
-      ...(opts?.token ? { authorization: `Bearer ${opts.token}` } : {}),
-    },
-    credentials: opts?.credentials,
-    cache: 'no-store',
-  });
+  const url = `${API_BASE}${path}`;
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'content-type': 'application/json',
+        ...(opts?.token ? { authorization: `Bearer ${opts.token}` } : {}),
+      },
+      credentials: opts?.credentials,
+      cache: 'no-store',
+    });
+  } catch (e: any) {
+    throw new Error(`fetch failed: ${url} :: ${String(e?.message ?? e)}`);
+  }
   if (!res.ok) throw new Error(await res.text());
   return (await res.json()) as T;
 }
