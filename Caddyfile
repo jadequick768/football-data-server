@@ -1,0 +1,7 @@
+api.tintuc360.net {
+    reverse_proxy api:3000
+}
+
+tintuc360.net, www.tintuc360.net {
+    reverse_proxy web:3000
+}

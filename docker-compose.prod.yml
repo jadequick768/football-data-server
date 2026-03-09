@@ -1,0 +1,53 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+
+  api:
+    build:
+      context: ./api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - SPORTSRC_API_KEY=${SPORTSRC_API_KEY}
+      - SPORTSRC_BASE_URL=https://api.sportsrc.org/v2/
+      - REDIS_URL=redis://redis:6379
+      - CACHE_PREFIX=sportsrc:v1
+    depends_on:
+      - redis
+
+  web:
+    build:
+      context: ./web
+      args:
+        - NEXT_PUBLIC_API_BASE_URL=https://api.tintuc360.net
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_BASE_URL=https://api.tintuc360.net
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - web
+
+volumes:
+  redis_data:
+  caddy_data:
+  caddy_config:
