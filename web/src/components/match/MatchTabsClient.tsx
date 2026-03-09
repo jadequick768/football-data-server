@@ -2,6 +2,7 @@
 
 import React from 'react';
 
+import OddsPanel from '@/components/match/OddsPanel';
 import type { MatchDetail } from '@/lib/detail';
 
 type Tab = 'stream' | 'overview' | 'timeline' | 'lineups' | 'stats' | 'odds' | 'h2h' | 'standing';
@@ -65,6 +66,8 @@ export default function MatchTabsClient({ detail }: { detail: MatchDetail }) {
             allowFullScreen
           />
         </div>
+      ) : tab === 'odds' ? (
+        <OddsPanel matchId={detail.id} />
       ) : (
         <div
           style={{
@@ -78,7 +81,7 @@ export default function MatchTabsClient({ detail }: { detail: MatchDetail }) {
         >
           <div style={{ fontWeight: 950, marginBottom: 8 }}>{tab.toUpperCase()}</div>
           <div style={{ color: '#9CA3AF', fontSize: 13 }}>
-            Tab này mình sẽ render dạng bảng/thông tin thể thao từ endpoints deep tương ứng (incidents/lineups/stats/odds/h2h/standing).
+            Tab này mình sẽ render dạng bảng/thông tin thể thao từ endpoints deep tương ứng (incidents/lineups/stats/h2h/standing).
           </div>
         </div>
       )}
