@@ -3,6 +3,7 @@
 Monorepo gồm:
 - `api/`: Node (Fastify) proxy + Redis cache cho SportSRC v2
 - `web/`: Next.js web app (bao gồm `/watch/[matchId]` để iOS WebView mở)
+- `mobile/`: Expo (React Native) iOS app (mở stream bằng WebView tới `app.tintuc360.net/watch/{matchId}`)
 
 ## Yêu cầu
 - Docker + Docker Compose
@@ -32,8 +33,20 @@ docker compose up --build
 
 ## Deploy
 
-Gợi ý route:
-- `api.tintuc360.net` -> container `api:3000`
-- `app.tintuc360.net` hoặc `tintuc360.net` -> container `web:3000` (compose map ra host port 3001)
+Gợi ý DNS + route:
+- `api.tintuc360.net` -> reverse proxy tới service `api:3000`
+- `app.tintuc360.net` -> reverse proxy tới service `web:3000` (để iOS WebView mở `/watch/{matchId}`)
 
-Bạn có thể dùng Nginx/Caddy/Traefik trên VPS để reverse proxy + TLS.
+Bạn có thể dùng Caddy (đã có sẵn trong `docker-compose.prod.yml`) để tự động TLS.
+
+## Mobile (Expo)
+
+```bash
+cd mobile
+npm install
+npm run ios
+```
+
+Cấu hình base URLs nằm trong `mobile/app.json` (expo.extra):
+- `apiBaseUrl`: https://api.tintuc360.net
+- `watchBaseUrl`: https://app.tintuc360.net
