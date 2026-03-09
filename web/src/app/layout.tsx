@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
+import TopBar from '@/components/TopBar';
 
 export const metadata: Metadata = {
-  title: 'SportSRC Watch',
-  description: 'Minimal watch page for embedding SportSRC streams',
+  title: 'Live Bóng Đá',
+  description: 'Lịch thi đấu, bảng kèo, stream, h2h, standings (SportSRC)',
 };
 
 export default function RootLayout({
@@ -12,7 +14,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body style={{ margin: 0, background: '#000', color: '#fff' }}>{children}</body>
+      <body style={{ margin: 0, background: '#0B0F14', color: '#fff' }}>
+        <Suspense fallback={null}>
+          <TopBar />
+        </Suspense>
+        {children}
+      </body>
     </html>
   );
 }
